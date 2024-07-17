@@ -54,7 +54,7 @@ def train(epoch):
         node_list_batch = get_batch(node_list, batch_size, i)
         z11 = z1[node_list_batch]
         z22 = z2[node_list_batch]
-        loss = model.msgcl2(z11, z22, z1, z2, node_list_batch, com, param['delta'], param['gamma'])
+        loss = model.msgcl2(z11, z22, z1, z2, node_list_batch, com,args.poolway, param['delta'], param['gamma'],coms)
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
