@@ -65,7 +65,7 @@ def train(epoch):
 
     z1 = model(x_1, edge_index_1)
     z2 = model(x_2, edge_index_2)
-    
+    batch_size=20480
     for i in range(num_batches):
         z1 = model(x_1, edge_index_1)
         z2 = model(x_2, edge_index_2)
