@@ -188,7 +188,38 @@ class DCMSL(torch.nn.Module):
         between_sim_node=between_sim_node*mask
         pfgcl=-torch.log(between_sim_node.diag() / (refl_sim_node.sum(1) + between_sim_node.sum(1) - refl_sim_node.diag()))
         return torch.mean(pfgcl)+gamma*torch.mean(clgcl)
+    def community_contrastive2(self, z1_batch, z2_batch, z1, z2,nlb, communities, delta, gamma) -> torch.Tensor:
+        #if self.clgcl is None:
+        #print(len(communities),z1_batch.shape,z1.shape)
+        communities = torch.tensor(communities, device=z1.device)
+        #print(communities.shape)
+        unique_communities, community_counts = torch.unique(communities, return_counts=True)
+        community_sums_z1 = torch.zeros(len(unique_communities), z1.size(1), device=z1.device)
+        community_sums_z2 = torch.zeros(len(unique_communities), z2.size(1), device=z2.device)
+        community_sums_z1.scatter_add_(0, communities.unsqueeze(1).expand(-1, z1.size(1)), z1)
+        community_sums_z2.scatter_add_(0, communities.unsqueeze(1).expand(-1, z2.size(1)), z2)
+        readout_z1 = community_sums_z1 / community_counts.unsqueeze(1).to(z1.device)
+        readout_z2 = community_sums_z2 / community_counts.unsqueeze(1).to(z2.device)
+        temp = lambda x: torch.exp(x / self.tau)
+        refl_sim = temp(self.sim(readout_z1, readout_z1))
+        between_sim = temp(self.sim(readout_z1, readout_z2))
+        clgcl = -torch.log(between_sim.diag() / (refl_sim.sum(1) + between_sim.sum(1) - refl_sim.diag()))
         
+        # 计算节点级别的对比损失
+        temp = lambda x: torch.exp(x / self.tau)
+        refl_sim_node = temp(self.sim(z1_batch, z1_batch))
+        between_sim_node = temp(self.sim(z1_batch, z2_batch))
+        #refl_sim_node = temp(self.sim(z1, z1))
+        #between_sim_node = temp(self.sim(z1, z2))
+        batch_communities = communities[nlb]
+        mask = (batch_communities.unsqueeze(0) == batch_communities.unsqueeze(1)).float()
+        #mask = (communities.unsqueeze(0) == communities.unsqueeze(1)).float()
+        mask[mask == 0] = torch.tensor(delta).to(z1.device)
+        refl_sim_node = refl_sim_node * mask
+        between_sim_node = between_sim_node * mask
+        pfgcl = -torch.log(between_sim_node.diag() / (refl_sim_node.sum(1) + between_sim_node.sum(1) - refl_sim_node.diag()))
+        
+        return torch.mean(pfgcl) + gamma * torch.mean(clgcl)    
     def max_pool_community_contrastive(self, z1, z2, communities,delta,gamma) -> torch.Tensor:
         #print("max")
         communities = torch.tensor(communities, device=z1.device)
@@ -238,6 +269,47 @@ class DCMSL(torch.nn.Module):
         if self.poolway=="infonce":
             l1 = self.semi_loss(h1, h2)
             l2 = self.semi_loss(h2, h1)
+        #l1 = self.community_contrastive(h1, h2,com,delta,gamma)
+        #l2 = self.community_contrastive(h2, h1,com,delta,gamma)
+        ret = (l1 + l2) * 0.5
+        ret = ret.mean()
+        return ret
+
+    def msgcl2(self,z11,z22,z1,z2,nlb,com,poolway,delta,gamma,coms) -> torch.Tensor:
+    #def msgcl(self,z1,z2,com,delta,gamma) -> torch.Tensor:
+
+        h1 = self.projection(z1)
+        h2 = self.projection(z2)
+        h11=self.projection(z11)
+        h22= self.projection(z22)   
+        h1 = self.projection(z1)
+        h2 = self.projection(z2)    
+        if self.poolway=="ori":
+            #l1 = self.community_contrastive(h1, h2,com,delta,gamma)
+            #l2 = self.community_contrastive(h2, h1,com,delta,gamma)
+            l1 = self.community_contrastive2(h11,h22,h1,h2,nlb,com,delta,gamma)
+            l2 = self.community_contrastive2(h22,h11,h2,h1,nlb,com,delta,gamma)
+        if self.poolway=="max":
+            l1 = self.max_pool_community_contrastive(h1, h2,com,delta,gamma)
+            l2 = self.max_pool_community_contrastive(h2, h1,com,delta,gamma)
+        if self.poolway=="rand":
+            l1 = self.rand_pool_community_contrastive(h1, h2,com,delta,gamma)
+            l2 = self.rand_pool_community_contrastive(h2, h1,com,delta,gamma)
+        if self.poolway=="cs":
+            l1 = self.community_contrastive_with_cs(h1, h2,com,delta,gamma,coms)
+            l2 = self.community_contrastive_with_cs(h2, h1,com,delta,gamma,coms)
+        if self.poolway=="infonce":
+            l1 = self.semi_loss(h1, h2)
+            l2 = self.semi_loss(h2, h1)
+        #l1 = self.community_contrastive(h1, h2,com,delta,gamma)
+        #l2 = self.community_contrastive(h2, h1,com,delta,gamma)
+        ret = (l1 + l2) * 0.5
+        ret = ret.mean()
+        return ret
+
+
+        l1 = self.community_contrastive2(h11,h22,h1,h2,nlb,com,delta,gamma)
+        l2 = self.community_contrastive2(h22,h11,h2,h1,nlb,com,delta,gamma)
         #l1 = self.community_contrastive(h1, h2,com,delta,gamma)
         #l2 = self.community_contrastive(h2, h1,com,delta,gamma)
         ret = (l1 + l2) * 0.5
