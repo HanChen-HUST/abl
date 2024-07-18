@@ -194,7 +194,7 @@ if __name__ == '__main__':
 
     encoder = Encoder(dataset.num_features, param['num_hidden'], get_activation(param['activation']),
                       base_model=get_base_model(param['base_model']), k=param['num_layers']).to(device)
-    model = DCMSL(encoder, param['num_hidden'], param['num_proj_hidden'], param['tau']).to(device)
+    model = DCMSL(encoder, param['num_hidden'], param['num_proj_hidden'], args.poolway,param['tau']).to(device)
     optimizer = torch.optim.Adam(
         model.parameters(),
         lr=param['learning_rate'],
