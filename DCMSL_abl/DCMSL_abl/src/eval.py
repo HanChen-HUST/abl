@@ -6,12 +6,12 @@ import torch.nn as nn
 
 from .model import LogReg
 from sklearn.metrics import f1_score
-def get_idx_split(dataset, split, preload_split):
+def get_idx_split1(dataset, split, preload_split):
     
     return dataset.get_idx_split()
     
         
-def get_idx_split1(dataset, split, preload_split):
+def get_idx_split(dataset, split, preload_split):
     if split[:4] == 'rand':
         train_ratio = float(split.split(':')[1])
         num_nodes = dataset[0].x.size(0)
