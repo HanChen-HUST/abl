@@ -58,8 +58,15 @@ def log_regression(z,
     num_classes = dataset[0].y.max().item() + 1
     classifier = LogReg(num_hidden, num_classes).to(test_device)
     optimizer = Adam(classifier.parameters(), lr=0.01, weight_decay=0.0)
+    path = '../datasets/'
+ 
 
-    dataset = get_dataset("/home/dhc/DCMSL/datasets/", "Ogbn")
+
+    
+    path = osp.join(path, args.dataset)
+    
+    dataset = get_dataset(path, args.dataset)
+
     
     data = dataset[0]
     data = data.to(test_device)
