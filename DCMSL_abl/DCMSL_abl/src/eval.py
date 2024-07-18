@@ -58,31 +58,28 @@ def log_regression(z,
     num_classes = dataset[0].y.max().item() + 1
     classifier = LogReg(num_hidden, num_classes).to(test_device)
     optimizer = Adam(classifier.parameters(), lr=0.01, weight_decay=0.0)
-    if 1!=1:#dataset=="Ogbn":
-        dataset = get_dataset("/home/dhc/DCMSL/datasets/", "Ogbn")
-        
-        data = dataset[0]
-        data = data.to(test_device)
-        split_idx = dataset.get_idx_split()
-        train_idx = split_idx['train']
-        val_idx = split_idx['valid']
-        test_idx = split_idx['test']
-        train_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
-        test_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
-        val_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
-        train_mask[train_idx] = True
-        test_mask[test_idx] = True
-        val_mask[val_idx] = True
-       # split=train_mask, test_mask, val_mask
-        split={
-                'train': train_mask,
-                'test': test_mask,
-                'val': val_mask
-          }
-    #else:
-        #split = get_idx_split(dataset, split, preload_split)
-    else:
-        split = get_idx_split(dataset, split, preload_split)
+
+    dataset = get_dataset("/home/dhc/DCMSL/datasets/", "Ogbn")
+    
+    data = dataset[0]
+    data = data.to(test_device)
+    split_idx = dataset.get_idx_split()
+    train_idx = split_idx['train']
+    val_idx = split_idx['valid']
+    test_idx = split_idx['test']
+    train_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
+    test_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
+    val_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
+    train_mask[train_idx] = True
+    test_mask[test_idx] = True
+    val_mask[val_idx] = True
+   # split=train_mask, test_mask, val_mask
+    split={
+            'train': train_mask,
+            'test': test_mask,
+            'val': val_mask
+      }
+ 
     
     #split = {k: v.to(test_device) for k, v in split.items()}
     split = {k: v.to(test_device) for k, v in split.items()}
