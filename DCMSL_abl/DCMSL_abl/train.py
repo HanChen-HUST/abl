@@ -72,31 +72,22 @@ def test(epoch, final=False):
     split = generate_split(data.num_nodes, train_ratio=0.1, val_ratio=0.1,
                            generator=torch.Generator().manual_seed(seed))
     evaluator = MulticlassEvaluator()
-    if args.dataset == 'WikiCS':
-        accs = []
-        micro_f1s, macro_f1s = [], []
-
-        for i in range(20):
-            cls_acc = log_regression(z, dataset, evaluator, split=f'wikics:{i}', num_epochs=800)
-            accs.append(cls_acc['acc'])
-        acc = sum(accs) / len(accs)
-    elif args.dataset=="Ogbn" :
-        split_idx = dataset.get_idx_split()
-        train_idx = split_idx['train']
-        val_idx = split_idx['valid']
-        test_idx = split_idx['test']
-        train_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
-        test_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
-        val_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
-        train_mask[train_idx] = True
-        test_mask[test_idx] = True
-        val_mask[val_idx] = True
-        split=train_mask, test_mask, val_mask
-        cls_acc = log_regression(z, dataset, evaluator, split=split, num_epochs=3000, preload_split=split)
-        acc = cls_acc['acc']
-    else:
-        cls_acc = log_regression(z, dataset, evaluator, split='rand:0.1', num_epochs=3000, preload_split=split)
-        acc = cls_acc['acc']
+    
+    
+    split_idx = dataset.get_idx_split()
+    train_idx = split_idx['train']
+    val_idx = split_idx['valid']
+    test_idx = split_idx['test']
+    train_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
+    test_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
+    val_mask = torch.zeros((data.num_nodes,)).to(torch.bool)
+    train_mask[train_idx] = True
+    test_mask[test_idx] = True
+    val_mask[val_idx] = True
+    split=train_mask, test_mask, val_mask
+    cls_acc = log_regression(z, dataset, evaluator, split='preloaded', num_epochs=3000, preload_split=split)
+    acc = cls_acc['acc']
+    
     res["acc"] = acc
     if final and use_nni:
         nni.report_final_result(acc)
@@ -188,7 +179,7 @@ if __name__ == '__main__':
     
     data = dataset[0]
     data = data.to(device)
-   
+    
     print('Detecting communities...')
     g = to_networkx(data, to_undirected=True)
     dc_res = algorithms.leiden(g)
